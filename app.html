@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Golf Club Recommender</title>
+  <style>
+    /* ---- Reset & Global ---- */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      background: #f0f5ec;
+      color: #2d3a2e;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ---- Top Nav ---- */
+    .top-bar {
+      width: 100%;
+      background: #1b4332;
+      padding: 0.8rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .top-bar a {
+      color: #b7e4c7;
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: color 0.2s;
+    }
+    .top-bar a:hover { color: #fff; }
+    .top-bar .brand { color: #fff; font-weight: bold; font-size: 1.1rem; }
+
+    /* ---- Card Container ---- */
+    .card {
+      background: #ffffff;
+      border-radius: 14px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      max-width: 620px;
+      width: 92%;
+      margin: 2.5rem auto 2rem;
+      overflow: hidden;
+    }
+
+    .card-header {
+      background: linear-gradient(135deg, #1b4332, #2d6a4f);
+      color: #fff;
+      padding: 2rem 2rem 1.5rem;
+      text-align: center;
+    }
+    .card-header h1 {
+      font-size: 1.7rem;
+      margin-bottom: 0.3rem;
+    }
+    .card-header p {
+      color: #b7e4c7;
+      font-size: 0.95rem;
+    }
+
+    .card-body {
+      padding: 2rem;
+    }
+
+    /* ---- Progress Bar ---- */
+    .progress-track {
+      width: 100%;
+      height: 6px;
+      background: #dde5db;
+      border-radius: 3px;
+      margin-bottom: 1.8rem;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #2d6a4f;
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+
+    /* ---- Question ---- */
+    .question-label {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #1b4332;
+      margin-bottom: 1rem;
+    }
+    .question-sub {
+      font-size: 0.88rem;
+      color: #6b7f71;
+      margin-top: -0.6rem;
+      margin-bottom: 1rem;
+    }
+
+    /* ---- Option Buttons ---- */
+    .options { display: flex; flex-direction: column; gap: 0.65rem; }
+
+    .opt-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+      padding: 0.9rem 1.1rem;
+      border: 2px solid #d0ddd2;
+      border-radius: 10px;
+      background: #fafcf9;
+      cursor: pointer;
+      font-size: 1rem;
+      color: #2d3a2e;
+      transition: border-color 0.2s, background 0.2s, transform 0.15s;
+      text-align: left;
+    }
+    .opt-btn:hover {
+      border-color: #52796f;
+      background: #e8f0e5;
+      transform: translateX(4px);
+    }
+    .opt-btn.selected {
+      border-color: #2d6a4f;
+      background: #d8f3dc;
+    }
+    .opt-btn .emoji { font-size: 1.4rem; flex-shrink: 0; }
+    .opt-btn .label { font-weight: 500; }
+    .opt-btn .desc { font-size: 0.82rem; color: #6b7f71; margin-top: 0.1rem; }
+
+    /* ---- Slider ---- */
+    .slider-group { margin-top: 0.5rem; }
+    .slider-group input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: #dde5db;
+      outline: none;
+      margin: 0.8rem 0;
+    }
+    .slider-group input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: #2d6a4f;
+      cursor: pointer;
+      border: 3px solid #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    .slider-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      color: #6b7f71;
+    }
+    .slider-value {
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #1b4332;
+      margin-top: 0.3rem;
+    }
+
+    /* ---- Nav Buttons ---- */
+    .nav-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 1.8rem;
+      gap: 1rem;
+    }
+    .btn {
+      padding: 0.7rem 1.6rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-back {
+      background: #e8f0e5;
+      color: #2d6a4f;
+    }
+    .btn-back:hover { background: #d0ddd2; }
+    .btn-next {
+      background: #2d6a4f;
+      color: #fff;
+      margin-left: auto;
+    }
+    .btn-next:hover { background: #1b4332; }
+    .btn-next:disabled {
+      background: #b0c4b1;
+      cursor: not-allowed;
+    }
+
+    /* ---- Results ---- */
+    .results-grid {
+      display: grid;
+      gap: 1rem;
+    }
+    .rec-card {
+      border: 2px solid #d0ddd2;
+      border-radius: 10px;
+      padding: 1.2rem;
+      background: #fafcf9;
+      transition: border-color 0.2s;
+    }
+    .rec-card:hover { border-color: #52796f; }
+    .rec-card .club-type {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #52796f;
+      margin-bottom: 0.3rem;
+    }
+    .rec-card h3 {
+      font-size: 1.1rem;
+      color: #1b4332;
+      margin-bottom: 0.3rem;
+    }
+    .rec-card .price {
+      font-weight: 700;
+      color: #2d6a4f;
+      font-size: 1.05rem;
+      margin-bottom: 0.4rem;
+    }
+    .rec-card p {
+      font-size: 0.88rem;
+      color: #555;
+      line-height: 1.5;
+    }
+
+    .total-box {
+      background: #d8f3dc;
+      border-radius: 10px;
+      padding: 1.2rem;
+      text-align: center;
+      margin-top: 1rem;
+    }
+    .total-box .total-label { font-size: 0.85rem; color: #354f3e; }
+    .total-box .total-amount { font-size: 1.8rem; font-weight: 700; color: #1b4332; }
+
+    .restart-btn {
+      display: block;
+      margin: 1.5rem auto 0;
+      padding: 0.7rem 2rem;
+      background: #1b4332;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .restart-btn:hover { background: #2d6a4f; }
+
+    .results-intro {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .results-intro h2 {
+      font-size: 1.4rem;
+      color: #1b4332;
+      margin-bottom: 0.3rem;
+    }
+    .results-intro p {
+      color: #6b7f71;
+      font-size: 0.92rem;
+    }
+
+    .hidden { display: none; }
+
+    /* ---- Footer ---- */
+    .footer {
+      text-align: center;
+      padding: 1rem;
+      font-size: 0.82rem;
+      color: #6b7f71;
+      margin-top: auto;
+    }
+    .footer a { color: #2d6a4f; }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <a href="scratch.html" class="brand">&#9971; Budget Golf Guide</a>
+    <a href="scratch.html">&larr; Back to Scratch Page</a>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h1>&#9971; Club Finder Quiz</h1>
+      <p>Answer 5 quick questions and get a personalized budget bag.</p>
+    </div>
+    <div class="card-body" id="quiz-body">
+      <!-- Filled by JS -->
+    </div>
+  </div>
+
+  <div class="footer">
+    &copy; 2026 Grayson Cardall &middot; <a href="scratch.html">Back to Scratch Page</a> &middot; <a href="index.html">Professional Site</a>
+  </div>
+
+<script>
+  // ──────────── DATA ────────────
+  const questions = [
+    {
+      id: "budget",
+      label: "What's your total budget for clubs?",
+      sub: "This covers everything: driver through putter.",
+      type: "options",
+      options: [
+        { value: "ultra", emoji: "💵", label: "Under $200", desc: "Thrift-store warrior" },
+        { value: "low", emoji: "💰", label: "$200 – $400", desc: "Smart shopper" },
+        { value: "mid", emoji: "💳", label: "$400 – $700", desc: "Best bang for buck" },
+        { value: "high", emoji: "💎", label: "$700 – $1,000", desc: "Investing in quality" },
+      ]
+    },
+    {
+      id: "skill",
+      label: "How would you describe your skill level?",
+      type: "options",
+      options: [
+        { value: "beginner", emoji: "🌱", label: "Beginner", desc: "Just starting out or played a few times" },
+        { value: "intermediate", emoji: "📈", label: "Intermediate", desc: "Can break 100 on a good day" },
+        { value: "advanced", emoji: "🏆", label: "Advanced", desc: "Consistently shooting in the 80s or below" },
+      ]
+    },
+    {
+      id: "style",
+      label: "What matters most to you on the course?",
+      sub: "Pick the one that resonates most.",
+      type: "options",
+      options: [
+        { value: "distance", emoji: "🚀", label: "Distance", desc: "I want to crush it off the tee" },
+        { value: "forgiveness", emoji: "🛡️", label: "Forgiveness", desc: "I need help on mishits" },
+        { value: "control", emoji: "🎯", label: "Control & Feel", desc: "Shot shaping and precision" },
+      ]
+    },
+    {
+      id: "frequency",
+      label: "How often do you plan to play?",
+      type: "options",
+      options: [
+        { value: "casual", emoji: "☀️", label: "A few times a year", desc: "Weekends & vacations" },
+        { value: "regular", emoji: "📅", label: "A few times a month", desc: "Building a habit" },
+        { value: "serious", emoji: "🔥", label: "Weekly or more", desc: "I'm hooked" },
+      ]
+    },
+    {
+      id: "condition",
+      label: "Are you okay buying used / pre-owned clubs?",
+      type: "options",
+      options: [
+        { value: "used", emoji: "♻️", label: "Absolutely", desc: "Best value by far" },
+        { value: "mix", emoji: "🤝", label: "Mix of new and used", desc: "Key clubs new, rest used" },
+        { value: "new", emoji: "✨", label: "Prefer new only", desc: "I want that fresh feel" },
+      ]
+    }
+  ];
+
+  // ──────────── CLUB DATABASE ────────────
+  const clubDB = {
+    driver: [
+      { name: "Callaway Strata Driver", price: 45, condition: "Bundled (new)", tiers: ["ultra"], skills: ["beginner"], styles: ["forgiveness","distance"] },
+      { name: "TaylorMade Burner SuperFast (used)", price: 60, condition: "Used", tiers: ["ultra","low"], skills: ["beginner","intermediate"], styles: ["distance","forgiveness"] },
+      { name: "Callaway Mavrik (used)", price: 130, condition: "Used", tiers: ["low","mid"], skills: ["beginner","intermediate","advanced"], styles: ["distance","forgiveness"] },
+      { name: "TaylorMade SIM Max (used)", price: 150, condition: "Used", tiers: ["low","mid"], skills: ["intermediate","advanced"], styles: ["distance","control"] },
+      { name: "Callaway Paradym X (used)", price: 250, condition: "Used", tiers: ["mid","high"], skills: ["intermediate","advanced"], styles: ["distance","forgiveness"] },
+      { name: "TaylorMade Qi10 (new)", price: 400, condition: "New", tiers: ["high"], skills: ["intermediate","advanced"], styles: ["distance","control"] },
+      { name: "Ping G430 Max (new)", price: 380, condition: "New", tiers: ["high"], skills: ["beginner","intermediate","advanced"], styles: ["forgiveness","distance"] },
+    ],
+    irons: [
+      { name: "Callaway Strata Iron Set (8pc)", price: 80, condition: "Bundled (new)", tiers: ["ultra"], skills: ["beginner"], styles: ["forgiveness"] },
+      { name: "TaylorMade M2 Irons 5-PW (used)", price: 180, condition: "Used", tiers: ["low","mid"], skills: ["beginner","intermediate"], styles: ["forgiveness","distance"] },
+      { name: "Callaway Rogue Irons 5-PW (used)", price: 200, condition: "Used", tiers: ["low","mid"], skills: ["beginner","intermediate"], styles: ["forgiveness","distance"] },
+      { name: "Ping G400 Irons 5-PW (used)", price: 220, condition: "Used", tiers: ["mid"], skills: ["intermediate","advanced"], styles: ["forgiveness","control"] },
+      { name: "Titleist T300 Irons 5-PW (used)", price: 350, condition: "Used", tiers: ["mid","high"], skills: ["intermediate","advanced"], styles: ["control","forgiveness"] },
+      { name: "TaylorMade P790 Irons 5-PW (new)", price: 500, condition: "New", tiers: ["high"], skills: ["advanced"], styles: ["control","distance"] },
+      { name: "Callaway Apex Irons 5-PW (new)", price: 520, condition: "New", tiers: ["high"], skills: ["intermediate","advanced"], styles: ["forgiveness","control"] },
+    ],
+    wedges: [
+      { name: "Cleveland CBX 56° (used)", price: 30, condition: "Used", tiers: ["ultra","low"], skills: ["beginner","intermediate"], styles: ["forgiveness"] },
+      { name: "Maltby TSW 52°/56° Set (new)", price: 50, condition: "New", tiers: ["ultra","low"], skills: ["beginner","intermediate"], styles: ["forgiveness","control"] },
+      { name: "Cleveland RTX ZipCore 52°/56° (used)", price: 80, condition: "Used", tiers: ["low","mid"], skills: ["intermediate","advanced"], styles: ["control","forgiveness"] },
+      { name: "Callaway Jaws MD5 52°/56° (used)", price: 100, condition: "Used", tiers: ["mid"], skills: ["intermediate","advanced"], styles: ["control"] },
+      { name: "Titleist Vokey SM9 52°/56° (new)", price: 180, condition: "New", tiers: ["mid","high"], skills: ["advanced"], styles: ["control"] },
+      { name: "TaylorMade Hi-Toe 3 52°/56° (new)", price: 170, condition: "New", tiers: ["high"], skills: ["intermediate","advanced"], styles: ["control","forgiveness"] },
+    ],
+    putter: [
+      { name: "Pinemeadow PGX Putter (new)", price: 20, condition: "New", tiers: ["ultra"], skills: ["beginner"], styles: ["forgiveness"] },
+      { name: "Odyssey White Hot OG #7 (used)", price: 50, condition: "Used", tiers: ["ultra","low","mid"], skills: ["beginner","intermediate","advanced"], styles: ["forgiveness","control"] },
+      { name: "Cleveland Huntington Beach (used)", price: 45, condition: "Used", tiers: ["ultra","low"], skills: ["beginner","intermediate"], styles: ["forgiveness"] },
+      { name: "TaylorMade Spider Tour (used)", price: 90, condition: "Used", tiers: ["low","mid"], skills: ["intermediate","advanced"], styles: ["forgiveness","control"] },
+      { name: "Ping Sigma 2 Anser (used)", price: 80, condition: "Used", tiers: ["mid"], skills: ["intermediate","advanced"], styles: ["control"] },
+      { name: "Scotty Cameron Special Select (used)", price: 250, condition: "Used", tiers: ["high"], skills: ["advanced"], styles: ["control"] },
+      { name: "Odyssey Tri-Hot 5K (new)", price: 200, condition: "New", tiers: ["high"], skills: ["intermediate","advanced"], styles: ["forgiveness","control"] },
+    ],
+    hybrid: [
+      { name: "Adams Golf Tight Lies Hybrid (used)", price: 25, condition: "Used", tiers: ["ultra","low"], skills: ["beginner","intermediate"], styles: ["forgiveness","distance"] },
+      { name: "Callaway Mavrik Hybrid (used)", price: 70, condition: "Used", tiers: ["low","mid"], skills: ["beginner","intermediate","advanced"], styles: ["distance","forgiveness"] },
+      { name: "TaylorMade Stealth Rescue (used)", price: 100, condition: "Used", tiers: ["mid"], skills: ["intermediate","advanced"], styles: ["distance","control"] },
+      { name: "Ping G430 Hybrid (new)", price: 180, condition: "New", tiers: ["mid","high"], skills: ["intermediate","advanced"], styles: ["forgiveness","distance"] },
+      { name: "Titleist TSR2 Hybrid (new)", price: 200, condition: "New", tiers: ["high"], skills: ["advanced"], styles: ["distance","control"] },
+    ]
+  };
+
+  // Budget caps
+  const budgetCaps = { ultra: 200, low: 400, mid: 700, high: 1000 };
+
+  // ──────────── STATE ────────────
+  let step = 0;
+  const answers = {};
+
+  // ──────────── RENDER ────────────
+  const body = document.getElementById("quiz-body");
+
+  function render() {
+    if (step < questions.length) {
+      renderQuestion(questions[step]);
+    } else {
+      renderResults();
+    }
+  }
+
+  function renderQuestion(q) {
+    const progress = ((step) / questions.length) * 100;
+    let html = `<div class="progress-track"><div class="progress-fill" style="width:${progress}%"></div></div>`;
+    html += `<div class="question-label">${q.label}</div>`;
+    if (q.sub) html += `<div class="question-sub">${q.sub}</div>`;
+
+    html += `<div class="options">`;
+    q.options.forEach(opt => {
+      const sel = answers[q.id] === opt.value ? "selected" : "";
+      html += `
+        <button class="opt-btn ${sel}" onclick="selectOption('${q.id}','${opt.value}')">
+          <span class="emoji">${opt.emoji}</span>
+          <span>
+            <span class="label">${opt.label}</span>
+            ${opt.desc ? `<div class="desc">${opt.desc}</div>` : ""}
+          </span>
+        </button>`;
+    });
+    html += `</div>`;
+
+    html += `<div class="nav-row">`;
+    if (step > 0) html += `<button class="btn btn-back" onclick="goBack()">&#8592; Back</button>`;
+    html += `<button class="btn btn-next" id="nextBtn" ${answers[q.id] ? "" : "disabled"} onclick="goNext()">Next &#8594;</button>`;
+    html += `</div>`;
+
+    body.innerHTML = html;
+  }
+
+  function selectOption(qId, value) {
+    answers[qId] = value;
+    render();
+  }
+
+  function goNext() { step++; render(); }
+  function goBack() { step--; render(); }
+
+  // ──────────── RECOMMENDATION ENGINE ────────────
+  function recommend() {
+    const budget = answers.budget;
+    const skill = answers.skill;
+    const style = answers.style;
+    const freq = answers.frequency;
+    const cond = answers.condition;
+    const cap = budgetCaps[budget];
+
+    function score(club, category) {
+      let s = 0;
+      if (club.tiers.includes(budget)) s += 3;
+      if (club.skills.includes(skill)) s += 2;
+      if (club.styles.includes(style)) s += 2;
+      // condition preference
+      if (cond === "new" && club.condition === "New") s += 1;
+      if (cond === "used" && club.condition.includes("Used")) s += 1;
+      // frequency: serious players get slight bump for higher quality
+      if (freq === "serious") s += (club.price > 100 ? 1 : 0);
+      if (freq === "casual") s += (club.price < 100 ? 1 : 0);
+      return s;
+    }
+
+    // Score and sort each category
+    const picks = {};
+    const categories = ["driver","irons","wedges","putter","hybrid"];
+    categories.forEach(cat => {
+      const scored = clubDB[cat]
+        .map(c => ({ ...c, score: score(c, cat) }))
+        .sort((a, b) => b.score - a.score);
+      picks[cat] = scored[0];
+    });
+
+    // Check total — if over budget, try swapping from most expensive down
+    let total = categories.reduce((sum, cat) => sum + picks[cat].price, 0);
+
+    if (total > cap) {
+      // Try cheaper alternatives for non-essential clubs first
+      const adjustOrder = ["hybrid","wedges","driver","putter","irons"];
+      for (const cat of adjustOrder) {
+        if (total <= cap) break;
+        const alternatives = clubDB[cat]
+          .filter(c => c.price < picks[cat].price)
+          .map(c => ({ ...c, score: score(c, cat) }))
+          .sort((a, b) => b.score - a.score);
+        if (alternatives.length > 0) {
+          total -= picks[cat].price;
+          picks[cat] = alternatives[0];
+          total += picks[cat].price;
+        }
+      }
+    }
+
+    // If still over budget, drop hybrid
+    if (total > cap) {
+      total -= picks.hybrid.price;
+      delete picks.hybrid;
+    }
+
+    return { picks, total };
+  }
+
+  // ──────────── RESULTS ────────────
+  function renderResults() {
+    const { picks, total } = recommend();
+    const progress = 100;
+
+    const catLabels = {
+      driver: "Driver",
+      irons: "Iron Set",
+      wedges: "Wedges",
+      putter: "Putter",
+      hybrid: "Hybrid / Fairway Wood"
+    };
+
+    let html = `<div class="progress-track"><div class="progress-fill" style="width:${progress}%"></div></div>`;
+    html += `<div class="results-intro">
+      <h2>&#127947; Your Custom Bag</h2>
+      <p>Based on your ${answers.budget === "ultra" ? "under $200" : answers.budget === "low" ? "$200–$400" : answers.budget === "mid" ? "$400–$700" : "$700–$1,000"} budget, ${answers.skill} skill level, and focus on ${answers.style}.</p>
+    </div>`;
+
+    html += `<div class="results-grid">`;
+    for (const [cat, club] of Object.entries(picks)) {
+      html += `
+        <div class="rec-card">
+          <div class="club-type">${catLabels[cat]}</div>
+          <h3>${club.name}</h3>
+          <div class="price">~$${club.price}</div>
+          <p>${club.condition} · Great for ${club.styles.join(" & ")} players</p>
+        </div>`;
+    }
+    html += `</div>`;
+
+    html += `
+      <div class="total-box">
+        <div class="total-label">Estimated Total</div>
+        <div class="total-amount">$${total}</div>
+      </div>`;
+
+    html += `<button class="restart-btn" onclick="restart()">&#8635; Retake Quiz</button>`;
+
+    body.innerHTML = html;
+  }
+
+  function restart() {
+    step = 0;
+    for (const key in answers) delete answers[key];
+    render();
+  }
+
+  // ──────────── INIT ────────────
+  render();
+</script>
+
+</body>
+</html>
